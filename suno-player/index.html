@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi Música</title>
+<meta name="theme-color" content="#0b0b12">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="bg" aria-hidden="true">
+  <div class="bg-img" id="bgA"></div>
+  <div class="bg-img" id="bgB"></div>
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+  <div class="grain"></div>
+</div>
+
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">♪</span>
+    <div>
+      <h1 id="siteTitle">Mi Música</h1>
+      <p id="siteSub"></p>
+    </div>
+  </div>
+  <div class="tools">
+    <input id="search" type="search" placeholder="Buscar canción, estilo…" autocomplete="off">
+    <button class="btn" id="playAll" title="Reproducir todo">▶ Todo</button>
+    <button class="btn ghost" id="shuffleAll" title="Aleatorio">🔀</button>
+  </div>
+</header>
+
+<div class="chips" id="chips"></div>
+<main id="grid" class="grid" aria-live="polite"></main>
+<p id="empty" class="empty" hidden>No hay canciones que coincidan.</p>
+<div style="height:120px"></div>
+
+<!-- Mini player -->
+<div id="mini" class="mini" hidden>
+  <div class="mini-progress"><i id="miniBar"></i></div>
+  <button class="mini-info" id="miniOpen" aria-label="Abrir reproductor">
+    <img id="miniCover" alt="">
+    <span><b id="miniTitle"></b><small id="miniTags"></small></span>
+  </button>
+  <div class="mini-ctrl">
+    <button class="ico" data-act="prev" aria-label="Anterior">⏮</button>
+    <button class="ico play" data-act="toggle" aria-label="Play/Pausa">▶</button>
+    <button class="ico" data-act="next" aria-label="Siguiente">⏭</button>
+  </div>
+</div>
+
+<!-- Full player -->
+<section id="full" class="full" hidden aria-label="Reproductor">
+  <button class="close" id="closeFull" aria-label="Cerrar">⌄</button>
+  <div class="full-inner">
+    <div class="stage-col">
+      <div class="stage" id="stage">
+        <img id="fullCover" class="layer cover" alt="">
+        <video id="video" class="layer vid" playsinline muted loop preload="none"></video>
+        <canvas id="viz" class="layer viz"></canvas>
+      </div>
+      <div class="modes" id="modes">
+        <button data-mode="cover" class="on">Portada</button>
+        <button data-mode="video">Vídeo</button>
+        <button data-mode="viz">Visualizador</button>
+      </div>
+    </div>
+
+    <div class="side-col">
+      <div class="meta">
+        <h2 id="fullTitle"></h2>
+        <p id="fullTags"></p>
+        <a id="sunoLink" href="#" target="_blank" rel="noopener" hidden>Ver en Suno ↗</a>
+      </div>
+      <div class="tabs" id="tabs">
+        <button data-tab="lyrics" class="on">Letra</button>
+        <button data-tab="queue">Cola</button>
+      </div>
+      <div class="panel" id="lyrics"></div>
+      <div class="panel" id="queue" hidden></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="seek">
+      <span id="tCur">0:00</span>
+      <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Progreso">
+      <span id="tDur">0:00</span>
+    </div>
+    <div class="row">
+      <div class="left">
+        <button class="ico small" id="btnShuffle" title="Aleatorio (S)">🔀</button>
+        <button class="ico small" id="btnRepeat" title="Repetir (R)">🔁</button>
+      </div>
+      <div class="center">
+        <button class="ico" data-act="prev" aria-label="Anterior">⏮</button>
+        <button class="ico play big" data-act="toggle" aria-label="Play/Pausa">▶</button>
+        <button class="ico" data-act="next" aria-label="Siguiente">⏭</button>
+      </div>
+      <div class="right">
+        <span class="vol-ico">🔊</span>
+        <input id="vol" type="range" min="0" max="1" step="0.01" value="0.9" aria-label="Volumen">
+        <button class="ico small" id="btnFs" title="Pantalla completa (F)">⛶</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<audio id="audio" preload="metadata"></audio>
+<script src="app.js"></script>
+</body>
+</html>

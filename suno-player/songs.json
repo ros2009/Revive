@@ -1,0 +1,30 @@
+{
+  "site": {
+    "title": "Mi Música",
+    "subtitle": "Creadas con Suno · colección personal"
+  },
+  "songs": [
+    {
+      "id": "neon",
+      "title": "Noches de Neón (demo)",
+      "audio": "demo:120:220:277.2:329.6:440:329.6:277.2:246.9:293.7",
+      "tags": ["synthwave", "electrónica"],
+      "suno": "https://suno.com/",
+      "lyrics": "[00:02.00] Luces en la ciudad\n[00:06.00] Todo brilla en la oscuridad\n[00:10.00] Corro sin mirar atrás\n[00:14.00] Con el pulso a mil por hora\n[00:18.50] Neón, neón, dentro de mí\n[00:22.50] Nunca quiero despertar de aquí\n[00:27.00] Neón, neón, hasta el final"
+    },
+    {
+      "id": "lluvia",
+      "title": "Lluvia de Verano (demo)",
+      "audio": "demo:84:196:246.9:293.7:392:293.7:246.9:220:261.6",
+      "tags": ["chill", "acústica"],
+      "lyrics": "[Verse 1]\nGotas en la ventana\nTu voz suena lejana\n\n[Chorus]\nQue llueva, que llueva\nQue el cielo nos lleve\n\n[Verse 2]\nEsta letra no tiene tiempos,\npor eso avanza sola mientras suena la canción"
+    },
+    {
+      "id": "fuego",
+      "title": "Fuego (demo)",
+      "audio": "demo:140:164.8:196:220:246.9:329.6:246.9:220:196",
+      "tags": ["rock", "electrónica"],
+      "lyrics": ""
+    }
+  ]
+}
