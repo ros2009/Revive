@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parchís para jugar con calma</title>
+<style>
+:root{
+  --bg:#fbf6ea; --ink:#1a1a1a; --panel:#ffffff; --line:#6b5a3a; --board:#f3e6c4;
+  --accent:#0b5cad; --accent-ink:#ffffff; --muted:#4a4a4a; --focus:#000;
+  --cell:#ffffff; --safe:#e4e4e4; --cellline:#6b5a3a;
+}
+body.hc{
+  --bg:#ffffff; --ink:#000; --panel:#fff; --line:#000; --board:#fff;
+  --accent:#000; --accent-ink:#fff; --muted:#000; --cell:#fff; --safe:#cfcfcf; --cellline:#000;
+}
+*{box-sizing:border-box}
+html{font-size:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Verdana,Arial,sans-serif;line-height:1.4}
+header{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:space-between;padding:.6rem 1rem;background:var(--panel);border-bottom:3px solid var(--line)}
+h1{margin:0;font-size:1.7rem}
+h2{font-size:1.1rem;margin:.2rem 0 .5rem}
+nav{display:flex;flex-wrap:wrap;gap:.5rem}
+.btn{font:inherit;font-weight:700;min-height:3.2rem;padding:.5rem 1.1rem;border:3px solid var(--ink);border-radius:.8rem;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover:not(:disabled){background:#fff3c4}
+body.hc .btn:hover:not(:disabled){background:#000;color:#fff}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--ink)}
+.btn.primary:hover:not(:disabled){background:#0a4a8c;color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:5px solid var(--focus);outline-offset:3px;box-shadow:0 0 0 8px #fff}
+main{display:grid;grid-template-columns:minmax(0,1fr) 25rem;gap:1rem;padding:1rem;max-width:80rem;margin:0 auto;align-items:start}
+#boardWrap{width:100%;max-width:min(100%,calc(100vh - 6rem));margin:0 auto}
+#board{width:100%;height:auto;display:block;border:4px solid var(--line);border-radius:12px;background:var(--board);touch-action:manipulation}
+#panel{display:flex;flex-direction:column;gap:.9rem}
+.card{background:var(--panel);border:3px solid var(--line);border-radius:.9rem;padding:.8rem}
+#turn{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.15rem}
+.chip{display:inline-block;width:1.4rem;height:1.4rem;border-radius:50%;border:3px solid #000}
+#status{font-size:1.2rem;font-weight:600;min-height:4.6em;display:flex;align-items:center}
+#diceBox{display:flex;align-items:center;gap:1rem}
+.die{--c:#000;width:5.6rem;height:5.6rem;background:#fff;border:4px solid var(--c);border-radius:1rem;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:.45rem;flex:none}
+.die i{display:block;border-radius:50%;margin:12%}
+.die i.on{background:#111}
+.die.rolling{animation:shake .25s infinite}
+@keyframes shake{0%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}100%{transform:rotate(-8deg)}}
+#diceInfo{font-size:1.05rem;font-weight:600}
+#rollBtn{font-size:1.4rem;min-height:4.4rem;width:100%}
+#pieces{display:grid;gap:.5rem}
+.pbtn{display:grid;grid-template-columns:2.4rem 1fr;gap:.2rem .7rem;align-items:center;text-align:left;min-height:3.6rem;padding:.4rem .7rem}
+.pbtn .num{width:2.4rem;height:2.4rem;border-radius:50%;background:#d62828;color:#fff;font-weight:800;display:grid;place-items:center;border:3px solid #000;grid-row:span 2}
+.pbtn small{font-weight:500;font-size:.8rem;color:var(--muted)}
+.pbtn .bar{display:block;height:.45rem;background:#ddd;border-radius:.3rem;overflow:hidden;border:1px solid #777}
+.pbtn .bar i{display:block;height:100%;background:#14733a}
+.pbtn.hint{box-shadow:0 0 0 5px #f2b705;background:#fff3c4}
+#hint{font-weight:600;min-height:1.4em}
+#score{display:grid;gap:.35rem;font-size:.95rem}
+#score div{display:flex;gap:.5rem;align-items:center}
+#score .you{font-weight:800}
+#log{margin:.4rem 0 0;padding-left:1.3rem;font-size:.9rem;color:var(--muted)}
+summary{cursor:pointer;font-weight:700;min-height:2.2rem}
+/* Board */
+.pc{cursor:default}
+.pc.can{cursor:pointer}
+.pc.can .ring{animation:pulse 1.1s ease-in-out infinite}
+.pc.hint .ring{stroke:#f2b705;stroke-width:1.6}
+.ring{fill:none;stroke:#000;stroke-width:1.1;stroke-dasharray:2 1.2}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.dest{cursor:pointer}
+.dest circle{fill:rgba(255,255,255,.75);stroke:#000;stroke-width:.9;stroke-dasharray:1.6 1}
+.dest text{font-weight:800;font-size:4px}
+.dest.hint circle{stroke:#f2b705;stroke-width:1.5;fill:#fff3c4}
+@media (prefers-reduced-motion:reduce){.ring,.die.rolling{animation:none!important}}
+/* Dialogs */
+dialog{border:4px solid var(--ink);border-radius:1rem;padding:1.1rem;max-width:min(42rem,94vw);width:100%;background:var(--panel);color:var(--ink);max-height:92vh;overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+fieldset{border:3px solid var(--line);border-radius:.8rem;margin:0 0 .9rem;padding:.6rem .8rem}
+legend{font-weight:800;padding:0 .4rem}
+.opts{display:grid;gap:.5rem}
+.opts.row3{grid-template-columns:repeat(auto-fit,minmax(9rem,1fr))}
+.opt{display:flex;gap:.6rem;align-items:flex-start;border:3px solid var(--line);border-radius:.8rem;padding:.55rem .7rem;cursor:pointer;background:#fff;min-height:3.2rem}
+.opt:has(input:checked){border-color:var(--accent);background:#e3f0ff;box-shadow:inset 0 0 0 2px var(--accent)}
+body.hc .opt:has(input:checked){background:#000;color:#fff;border-color:#000}
+.opt input{width:1.5rem;height:1.5rem;margin-top:.15rem;flex:none;accent-color:#0b5cad}
+.opt small{display:block;font-weight:400;color:var(--muted)}
+body.hc .opt:has(input:checked) small{color:#fff}
+.actions{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-end;margin-top:.6rem}
+dialog ul{padding-left:1.3rem}
+dialog li{margin-bottom:.4rem}
+@media (max-width:62rem){
+  main{grid-template-columns:1fr}
+  #boardWrap{max-width:100%}
+}
+@media (max-width:30rem){ html{font-size:18px} main{padding:.5rem} }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎲 Parchís</h1>
+  <nav aria-label="Menú">
+    <button class="btn" id="btnNew">Nueva partida</button>
+    <button class="btn" id="btnHelp">Cómo se juega</button>
+    <button class="btn" id="btnSettings">Ajustes</button>
+  </nav>
+</header>
+
+<main>
+  <section id="boardWrap" aria-label="Tablero">
+    <svg id="board" viewBox="0 0 190 190" role="img" aria-label="Tablero de parchís. Usa los botones de la derecha para jugar."></svg>
+  </section>
+
+  <section id="panel" aria-label="Panel de juego">
+    <div class="card">
+      <div id="turn"></div>
+      <div id="status" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <div id="diceBox">
+        <div class="die" id="die" role="img" aria-label="Dado"></div>
+        <div id="diceInfo">Aún no has tirado.</div>
+      </div>
+      <button class="btn primary" id="rollBtn" style="margin-top:.7rem" disabled>🎲 Tirar el dado</button>
+    </div>
+
+    <div class="card">
+      <h2>Tus fichas (rojas)</h2>
+      <div id="pieces"></div>
+      <button class="btn" id="hintBtn" style="margin-top:.6rem;width:100%">💡 Pídeme un consejo</button>
+      <div id="hint" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <h2>Marcador</h2>
+      <div id="score"></div>
+      <details style="margin-top:.5rem"><summary>Últimas jugadas</summary><ol id="log" reversed></ol></details>
+    </div>
+  </section>
+</main>
+
+<!-- AJUSTES / NUEVA PARTIDA -->
+<dialog id="dlgSettings" aria-labelledby="settingsTitle">
+  <h2 id="settingsTitle" style="font-size:1.5rem">Nueva partida</h2>
+  <fieldset>
+    <legend>Dificultad</legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="level" value="facil"><span><b>Fácil</b><small>Los rivales juegan al azar y el dado te ayuda a salir de casa. Ideal para empezar.</small></span></label>
+      <label class="opt"><input type="radio" name="level" value="normal"><span><b>Normal</b><small>Los rivales juegan con sentido común: comen fichas y buscan casillas seguras.</small></span></label>
+      <label class="opt"><input type="radio" name="level" value="dificil"><span><b>Difícil</b><small>Los rivales calculan riesgos, te cierran el paso y aprovechan cada ocasión.</small></span></label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>Número de rivales</legend>
+    <div class="opts row3">
+      <label class="opt"><input type="radio" name="rivals" value="1"><span><b>1 rival</b></span></label>
+      <label class="opt"><input type="radio" name="rivals" value="2"><span><b>2 rivales</b></span></label>
+      <label class="opt"><input type="radio" name="rivals" value="3"><span><b>3 rivales</b></span></label>
+    </div>
+  </fieldset>
+
+  <h2 style="font-size:1.2rem">Comodidad (se aplica al instante)</h2>
+  <fieldset>
+    <legend>Tamaño de las letras</legend>
+    <div class="opts row3">
+      <label class="opt"><input type="radio" name="size" value="0"><span>Normal</span></label>
+      <label class="opt"><input type="radio" name="size" value="1"><span>Grande</span></label>
+      <label class="opt"><input type="radio" name="size" value="2"><span>Muy grande</span></label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>Velocidad del juego</legend>
+    <div class="opts row3">
+      <label class="opt"><input type="radio" name="speed" value="lenta"><span>Lenta</span></label>
+      <label class="opt"><input type="radio" name="speed" value="normal"><span>Normal</span></label>
+      <label class="opt"><input type="radio" name="speed" value="rapida"><span>Rápida</span></label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>Ayudas</legend>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" id="optContrast"><span>Alto contraste (blanco y negro)</span></label>
+      <label class="opt"><input type="checkbox" id="optHints"><span>Marcar en el tablero las fichas que puedo mover</span></label>
+      <label class="opt"><input type="checkbox" id="optAuto"><span>Mover sola mi ficha cuando solo hay una jugada posible</span></label>
+      <label class="opt"><input type="checkbox" id="optSound"><span>Sonidos</span></label>
+      <label class="opt"><input type="checkbox" id="optVoice"><span>Leer los mensajes en voz alta</span></label>
+    </div>
+  </fieldset>
+  <div class="actions">
+    <button class="btn" id="btnSettingsClose">Cerrar</button>
+    <button class="btn primary" id="btnStart">▶ Empezar partida nueva</button>
+  </div>
+</dialog>
+
+<!-- AYUDA -->
+<dialog id="dlgHelp" aria-labelledby="helpTitle">
+  <h2 id="helpTitle" style="font-size:1.5rem">Cómo se juega</h2>
+  <ul>
+    <li><b>Objetivo:</b> llevar tus 4 fichas rojas hasta la meta, el centro del tablero, antes que los rivales.</li>
+    <li><b>Salir de casa:</b> solo se sale con un <b>5</b>. La ficha aparece en tu casilla de salida (la roja).</li>
+    <li><b>Sentido:</b> las fichas avanzan en sentido contrario a las agujas del reloj. Al dar la vuelta, giras hacia el pasillo rojo que lleva a la meta.</li>
+    <li><b>Casillas seguras ★:</b> en ellas nadie puede comerte.</li>
+    <li><b>Comer:</b> si caes sobre una ficha rival que está sola, la mandas a casa y avanzas <b>20</b> casillas con cualquier ficha tuya.</li>
+    <li><b>Llegar a meta:</b> hace falta el número exacto. Al llegar, avanzas <b>10</b> casillas extra con otra ficha.</li>
+    <li><b>Barreras:</b> dos fichas del mismo color en una casilla forman una barrera. Nadie puede pasarla.</li>
+    <li><b>Seises:</b> si sacas un 6 vuelves a tirar. Tres seises seguidos hacen perder el turno.</li>
+    <li><b>Sin prisa:</b> el juego espera siempre por ti. Puedes pedir un consejo con el botón 💡.</li>
+    <li><b>Teclado:</b> Espacio o Intro para tirar el dado; las teclas 1 a 4 mueven la ficha correspondiente.</li>
+  </ul>
+  <div class="actions"><button class="btn primary" id="btnHelpClose">Entendido</button></div>
+</dialog>
+
+<!-- FIN -->
+<dialog id="dlgEnd" aria-labelledby="endTitle">
+  <h2 id="endTitle" style="font-size:1.8rem"></h2>
+  <p id="endText" style="font-size:1.2rem"></p>
+  <div class="actions">
+    <button class="btn" id="btnEndSettings">Cambiar dificultad</button>
+    <button class="btn primary" id="btnEndAgain">Jugar otra vez</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+/* ============ Datos del tablero ============ */
+const SEATS = [
+  {name:'Rojo',     color:'#d62828', light:'#f8d6d6', text:'#ffffff', end:68, start:5,  nest:[11,11]},
+  {name:'Azul',     color:'#1d4ed8', light:'#d6e0fb', text:'#ffffff', end:17, start:22, nest:[0,11]},
+  {name:'Amarillo', color:'#f2b705', light:'#fdf0bd', text:'#1a1a1a', end:34, start:39, nest:[0,0]},
+  {name:'Verde',    color:'#1b8a3a', light:'#d3ecd9', text:'#ffffff', end:51, start:56, nest:[11,0]},
+];
+const SAFE = new Set([5,12,17,22,29,34,39,46,51,56,63,68]);
+const TRACK = (()=>{
+  const t=[null];
+  for(let r=18;r>=11;r--) t.push([r,10]);                       // 1-8   (salida Rojo = 5)
+  for(let c=11;c<=18;c++) t.push([10,c]); t.push([9,18]);
+  for(let c=18;c>=11;c--) t.push([8,c]);                        // 9-25  (salida Azul = 22)
+  for(let r=7;r>=0;r--) t.push([r,10]); t.push([0,9]);
+  for(let r=0;r<=7;r++) t.push([r,8]);                          // 26-42 (salida Amarillo = 39)
+  for(let c=7;c>=0;c--) t.push([8,c]); t.push([9,0]);
+  for(let c=0;c<=7;c++) t.push([10,c]);                         // 43-59 (salida Verde = 56)
+  for(let r=11;r<=18;r++) t.push([r,8]); t.push([18,9]);        // 60-68
+  return t;
+})();
+const absSq = (seat,p)=>((SEATS[seat].start-1+p-1)%68)+1;
+function cellOf(seat,p){
+  if(p>=1 && p<=64) return TRACK[absSq(seat,p)];
+  if(p>=65 && p<=71){
+    const k=p-65;
+    return [[17-k,9],[9,17-k],[1+k,9],[9,1+k]][seat];
+  }
+  return [[10,9],[9,10],[8,9],[9,8]][seat]; // meta (72)
+}
+function nestPoint(seat,i){
+  const [r0,c0]=SEATS[seat].nest;
+  return {x:(c0+(i%2?5.5:2.5))*10, y:(r0+(i<2?2.5:5.5))*10};
+}
+
+/* ============ Ajustes ============ */
+const DEFAULTS={level:'normal',rivals:3,size:1,contrast:false,auto:true,hints:true,speed:'normal',sound:true,voice:false};
+let S=Object.assign({},DEFAULTS);
+try{ Object.assign(S, JSON.parse(localStorage.getItem('parchis-ajustes')||'{}')); }catch(e){}
+function saveS(){ try{ localStorage.setItem('parchis-ajustes',JSON.stringify(S)); }catch(e){} }
+const $=id=>document.getElementById(id);
+const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const SPEED={lenta:1.7,normal:1,rapida:.45,turbo:.01};
+const mult=()=> SPEED[S.speed]||1;
+
+/* ============ Sonido y voz ============ */
+let actx=null;
+function beep(f,d=.12,type='sine',vol=.09,delay=0){
+  if(!S.sound) return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime+delay;
+    o.type=type; o.frequency.value=f; g.gain.setValueAtTime(vol,t);
+    g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d);
+  }catch(e){}
+}
+const sfx={
+  dice(){ [300,380,330,420].forEach((f,i)=>beep(f,.07,'square',.05,i*.07)); },
+  step(){ beep(520,.05,'triangle',.06); },
+  exit(){ beep(440,.1); beep(660,.15,'sine',.09,.1); },
+  capture(){ beep(220,.18,'sawtooth',.07); beep(150,.25,'sawtooth',.07,.15); },
+  goal(){ [523,659,784,1047].forEach((f,i)=>beep(f,.18,'sine',.09,i*.12)); },
+  win(){ [523,659,784,1047,784,1047,1319].forEach((f,i)=>beep(f,.2,'sine',.1,i*.14)); },
+};
+function speak(msg){
+  if(!S.voice || !('speechSynthesis' in window)) return;
+  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(msg); u.lang='es-ES'; u.rate=.9; speechSynthesis.speak(u);}catch(e){}
+}
+
+/* ============ Estado del juego ============ */
+let G=null, tokenCounter=0;
+const CANCEL={};
+const ACTIVE={1:[0,2],2:[0,1,3],3:[0,1,2,3]};
+const rnd=n=>Math.floor(Math.random()*n);
+const sleep=ms=>{ const t=G.token; return new Promise((res,rej)=>setTimeout(()=>{ G.token===t?res():rej(CANCEL); }, Math.max(0,ms*mult()))); };
+const nameOf=s=> s===0 ? 'Rojo (tú)' : SEATS[s].name;
+const won=seat=>G.pos[seat].every(p=>p===72);
+
+function newGame(){
+  G={token:++tokenCounter, seats:ACTIVE[S.rivals], pos:[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
+     turn:0, canRoll:false, rollWait:null, choices:null, pick:null, hintI:null, lastMoved:null,
+     roll:null, rollSeat:0, rolling:false, log:[], over:false};
+  $('hint').textContent='';
+  drawBoard(); renderAll(); setDie(null,0);
+  $('diceInfo').textContent='Aún no has tirado.';
+  run(G).catch(e=>{ if(e!==CANCEL) console.error(e); });
+}
+
+function occupancy(){
+  const m={};
+  for(const s of G.seats) G.pos[s].forEach((p,i)=>{
+    if(p>=1&&p<=64){ const q=absSq(s,p); (m[q]=m[q]||[]).push({seat:s,i}); }
+  });
+  return m;
+}
+function hasBarrier(list){
+  const c={}; for(const o of list){ c[o.seat]=(c[o.seat]||0)+1; if(c[o.seat]>=2) return true; }
+  return false;
+}
+
+function legal(seat,n,bonus=false){
+  const res=[], occ=occupancy();
+  G.pos[seat].forEach((p,i)=>{
+    if(p===72) return;
+    if(p===0){
+      if(bonus||n!==5) return;
+      const sq=SEATS[seat].start, list=occ[sq]||[];
+      if(hasBarrier(list)) return;
+      const en=list.filter(o=>o.seat!==seat);
+      res.push({i,from:0,to:1,type:en.length?'capture':'exit',cap:en[0]||null});
+      return;
+    }
+    const t=p+n; if(t>72) return;
+    for(let q=p+1;q<=Math.min(t,64);q++){ const l=occ[absSq(seat,q)]; if(l&&hasBarrier(l)) return; }
+    let type='move', cap=null;
+    if(t===72) type='goal';
+    else if(t<=64){
+      const sq=absSq(seat,t), en=(occ[sq]||[]).filter(o=>o.seat!==seat);
+      if(en.length===1 && !SAFE.has(sq)){ type='capture'; cap=en[0]; }
+    } else type='stretch';
+    res.push({i,from:p,to:t,type,cap});
+  });
+  return res;
+}
+
+/* ============ IA ============ */
+function danger(seat,sq){
+  if(SAFE.has(sq) && !G.seats.some(s=>s!==seat && SEATS[s].start===sq)) return 0;
+  let d=0;
+  for(const s of G.seats){ if(s===seat) continue;
+    G.pos[s].forEach(p=>{
+      if(p===0){ if(SEATS[s].start===sq) d+=1/6; return; }
+      if(p<1||p>64) return;
+      const a=absSq(s,p), dist=(sq-a+68)%68;
+      if(dist>=1&&dist<=6&&p+dist<=64) d+=1/6;
+    });
+  }
+  return d;
+}
+function scoreMove(seat,mv,lvl){
+  let s=0; const t=mv.to, p=mv.from;
+  if(mv.type==='goal') s+=100;
+  if(mv.cap) s+=90+G.pos[mv.cap.seat][mv.cap.i]*.4;
+  if(mv.type==='exit') s+=55;
+  if(t>64&&t<72) s+=25;
+  if(t<=64&&SAFE.has(absSq(seat,t))) s+=18;
+  s+=(t-p)*.3+t*.15;
+  if(lvl==='dificil'){
+    const now=(p>=1&&p<=64)?danger(seat,absSq(seat,p)):0;
+    const next=(t>=1&&t<=64)?danger(seat,absSq(seat,t)):0;
+    s+=(now-next)*(25+t*.8);
+    if(t<=64){
+      const sq=absSq(seat,t);
+      const mine=G.pos[seat].some((q,j)=>j!==mv.i&&q>=1&&q<=64&&absSq(seat,q)===sq);
+      if(mine&&!SAFE.has(sq)) s+=8; // barrera
+    }
+  }
+  return s;
+}
+function aiChoose(seat,moves){
+  if(S.level==='facil') return moves[rnd(moves.length)];
+  let best=null,bs=-1e9;
+  for(const m of moves){
+    const sc=scoreMove(seat,m,S.level)+(S.level==='normal'?Math.random()*9:Math.random()*.5);
+    if(sc>bs){bs=sc;best=m;}
+  }
+  return best;
+}
+
+/* ============ Mensajes ============ */
+function say(msg,log=false){
+  $('status').textContent=msg; speak(msg);
+  if(log){ G.log.push(msg); if(G.log.length>8) G.log.shift(); }
+  renderLog();
+}
+function renderLog(){
+  $('log').innerHTML=G.log.map(x=>`<li>${x}</li>`).join('');
+}
+
+/* ============ Flujo de la partida ============ */
+async function run(g){
+  while(true){
+    for(const seat of g.seats){
+      await playTurn(seat);
+      if(won(seat)){ finish(seat); return; }
+    }
+  }
+}
+
+async function playTurn(seat){
+  G.turn=seat; let sixes=0;
+  while(true){
+    G.hintI=null; $('hint').textContent='';
+    renderAll();
+    const human=seat===0;
+    say(human ? 'Es tu turno. Pulsa el botón grande para tirar el dado.' : `Turno de ${SEATS[seat].name}…`);
+    if(human){
+      G.canRoll=true; renderAll();
+      await new Promise(res=>{ G.rollWait=res; });
+      G.canRoll=false; G.rollWait=null;
+    } else await sleep(800);
+    const roll=rollDie(seat);
+    await showRoll(seat,roll);
+    if(roll===6){
+      sixes++;
+      if(sixes===3){
+        say(`${human?'Has sacado':SEATS[seat].name+' ha sacado'} tres seises seguidos: ${human?'pierdes':'pierde'} el turno.`,true);
+        await sleep(1800); return;
+      }
+    }
+    const moves=legal(seat,roll);
+    if(!moves.length){
+      say(`${human?'No puedes':SEATS[seat].name+' no puede'} mover ninguna ficha con este ${roll}.`,true);
+      await sleep(human?2000:1300);
+    } else {
+      const mv=await chooseMove(seat,moves,roll);
+      await doMoveChain(seat,mv,roll);
+      if(won(seat)) return;
+    }
+    if(roll!==6) return;
+    say(`${human?'Has sacado':SEATS[seat].name+' ha sacado'} un 6: ${human?'¡tiras otra vez!':'tira otra vez.'}`,true);
+    await sleep(1200);
+  }
+}
+
+function rollDie(seat){
+  if(seat===0 && S.level==='facil'){
+    const out=G.pos[0].some(p=>p>0&&p<72), home=G.pos[0].some(p=>p===0);
+    if(!out&&home&&Math.random()<.34) return 5;
+  }
+  return 1+rnd(6);
+}
+
+async function showRoll(seat,roll){
+  G.rollSeat=seat; sfx.dice();
+  if(!reduced && S.speed!=='turbo'){
+    G.rolling=true; $('die').classList.add('rolling');
+    for(let i=0;i<6;i++){ setDie(1+rnd(6),seat); await sleep(100); }
+    $('die').classList.remove('rolling'); G.rolling=false;
+  }
+  G.roll=roll; setDie(roll,seat);
+  const who=seat===0?'Has sacado':`${SEATS[seat].name} ha sacado`;
+  $('diceInfo').textContent=`${who} un ${roll}.`;
+  say(`${who} un ${roll}.`,true);
+  await sleep(500);
+}
+
+async function chooseMove(seat,moves,n){
+  if(seat!==0){
+    await sleep(900);
+    return aiChoose(seat,moves);
+  }
+  G.choices=moves; G.hintI=null;
+  const info = moves.length===1 ? ' Solo puedes mover una ficha.' : ' Elige la ficha que quieres mover.';
+  say(`Has sacado un ${n}.${info}`);
+  renderAll();
+  if(moves.length===1 && S.auto){
+    await sleep(1500); G.choices=null; renderAll(); return moves[0];
+  }
+  const mv=await new Promise(res=>{ G.pick=res; });
+  G.pick=null; G.choices=null; G.hintI=null; $('hint').textContent='';
+  return mv;
+}
+
+async function doMoveChain(seat,mv,n){
+  let bonus=await execute(seat,mv,n);
+  while(bonus>0 && !won(seat)){
+    const ms=legal(seat,bonus,true);
+    if(!ms.length){ say(`${seat===0?'No puedes':SEATS[seat].name+' no puede'} usar los ${bonus} puntos extra con ninguna ficha.`,true); await sleep(1500); break; }
+    say(`${seat===0?'Tienes':SEATS[seat].name+' tiene'} ${bonus} casillas extra para mover.`,true);
+    await sleep(900);
+    const m=await chooseMove(seat,ms,bonus);
+    bonus=await execute(seat,m,bonus);
+  }
+}
+
+async function execute(seat,mv,n){
+  const pcs=G.pos[seat], me=seat===0;
+  G.lastMoved={seat,i:mv.i};
+  const step=reduced?60:210;
+  if(mv.from===0){
+    pcs[mv.i]=1; sfx.exit(); renderAll();
+    say(`${me?'Sacas':SEATS[seat].name+' saca'} una ficha de casa.`,true);
+    await sleep(step*3);
+  } else {
+    const fast = n>=10;
+    for(let q=mv.from+1;q<=mv.to;q++){
+      pcs[mv.i]=q; sfx.step(); renderAll(); await sleep(fast?step*.5:step);
+    }
+    if(mv.type==='move'||mv.type==='stretch') say(`${me?'Mueves':SEATS[seat].name+' mueve'} la ficha ${mv.i+1}: ${mv.to-mv.from} casillas.`,true);
+  }
+  let bonus=0;
+  if(mv.cap){
+    G.pos[mv.cap.seat][mv.cap.i]=0; bonus=20; sfx.capture(); renderAll();
+    const victim=mv.cap.seat===0?'una ficha tuya':`una ficha de ${SEATS[mv.cap.seat].name}`;
+    say(`¡${me?'Has comido':SEATS[seat].name+' ha comido'} ${victim}! ${me?'Ganas':'Gana'} 20 casillas extra.`,true);
+    await sleep(1700);
+  } else if(mv.to===72){
+    bonus=10; sfx.goal(); renderAll();
+    say(`¡${me?'Una ficha tuya ha llegado':'Una ficha de '+SEATS[seat].name+' ha llegado'} a la meta! ${me?'Ganas':'Gana'} 10 casillas extra.`,true);
+    await sleep(1700);
+  } else await sleep(350);
+  return bonus;
+}
+
+function finish(seat){
+  G.over=true; renderAll();
+  const me=seat===0;
+  $('endTitle').textContent = me ? '🎉 ¡Has ganado!' : `Ha ganado ${SEATS[seat].name}`;
+  $('endText').textContent = me
+    ? '¡Enhorabuena! Has llevado tus cuatro fichas hasta la meta.'
+    : 'Esta vez no ha podido ser. ¡Otra partida y seguro que te sale mejor!';
+  say($('endTitle').textContent);
+  if(me) sfx.win();
+  $('dlgEnd').showModal();
+}
+
+/* ============ Dibujo ============ */
+function drawBoard(){
+  let h='';
+  // casas
+  SEATS.forEach((s,k)=>{
+    const [r0,c0]=s.nest, act=G.seats.includes(k), x=c0*10, y=r0*10;
+    h+=`<g opacity="${act?1:.35}"><rect x="${x+1}" y="${y+1}" width="78" height="78" rx="8" fill="${s.color}"/>
+      <rect x="${x+7}" y="${y+9}" width="66" height="64" rx="6" fill="#fff"/>
+      <text x="${x+40}" y="${y+7}" text-anchor="middle" font-size="5" font-weight="800" fill="${s.text}">${act?s.name.toUpperCase()+(k===0?' · TÚ':''):'LIBRE'}</text>`;
+    for(let i=0;i<4;i++){ const p=nestPoint(k,i); h+=`<circle cx="${p.x}" cy="${p.y+1}" r="5.2" fill="${s.light}" stroke="${s.color}" stroke-width="1"/>`; }
+    h+='</g>';
+  });
+  // pasillos finales
+  SEATS.forEach((s,k)=>{
+    for(let p=65;p<=71;p++){ const [r,c]=cellOf(k,p);
+      h+=`<rect x="${c*10}" y="${r*10}" width="10" height="10" fill="${s.light}" stroke="var(--cellline)" stroke-width=".5"/>`;
+      h+=`<rect x="${c*10+3.5}" y="${r*10+3.5}" width="3" height="3" rx=".6" fill="${s.color}" opacity=".5"/>`;
+    }
+  });
+  // recorrido
+  for(let q=1;q<=68;q++){
+    const [r,c]=TRACK[q], k=SEATS.findIndex(s=>s.start===q), safe=SAFE.has(q);
+    const fill=k>=0?SEATS[k].color:(safe?'var(--safe)':'var(--cell)');
+    h+=`<rect x="${c*10}" y="${r*10}" width="10" height="10" fill="${fill}" stroke="var(--cellline)" stroke-width=".5"/>`;
+    if(safe) h+=`<text x="${c*10+5}" y="${r*10+7.4}" text-anchor="middle" font-size="7" fill="${k>=0?SEATS[k].text:'#444'}">★</text>`;
+  }
+  // centro
+  const tri=[ '80,110 110,110 95,95', '110,80 110,110 95,95', '80,80 110,80 95,95', '80,80 80,110 95,95' ];
+  SEATS.forEach((s,k)=>{ h+=`<polygon points="${tri[k]}" fill="${s.color}" stroke="#000" stroke-width=".6"/>`; });
+  h+=`<circle cx="95" cy="95" r="4.2" fill="#fff" stroke="#000" stroke-width=".6"/><text x="95" y="98" text-anchor="middle" font-size="8" font-weight="700">↺</text>`;
+  h+='<g id="pieceLayer"></g>';
+  $('board').innerHTML=h;
+}
+
+function renderPieces(){
+  const items=[];
+  for(const s of G.seats) G.pos[s].forEach((p,i)=>{
+    const mv=(s===0&&G.choices)?G.choices.find(m=>m.i===i):null;
+    if(p===0){ const n=nestPoint(s,i); items.push({s,i,x:n.x,y:n.y+1,r:4.4,mv,key:null}); }
+    else { const [r,c]=cellOf(s,p); items.push({s,i,cx:c*10+5,cy:r*10+5,mv,key:r+','+c}); }
+  });
+  const groups={};
+  items.forEach(it=>{ if(it.key){ (groups[it.key]=groups[it.key]||[]).push(it);} });
+  Object.values(groups).forEach(g=>{
+    const offs = g.length===1?[[0,0]]:g.length===2?[[-2.6,0],[2.6,0]]:[[-2.6,-2.6],[2.6,-2.6],[-2.6,2.6],[2.6,2.6]];
+    g.forEach((it,k)=>{ it.x=it.cx+offs[k][0]; it.y=it.cy+offs[k][1]; it.r=g.length===1?3.9:g.length===2?3.2:2.7; });
+  });
+  items.sort((a,b)=>(a.mv?1:0)-(b.mv?1:0));
+  let h='';
+  // destinos
+  if(G.choices && S.hints){
+    G.choices.forEach(m=>{
+      const [r,c]=cellOf(0,m.to);
+      h+=`<g class="dest${G.hintI===m.i?' hint':''}" data-pick="${m.i}" transform="translate(${c*10+5} ${r*10+5})"><circle r="4.6"/><text y="1.4" text-anchor="middle">${m.i+1}</text></g>`;
+    });
+  }
+  items.forEach(it=>{
+    const sd=SEATS[it.s], can=!!it.mv;
+    const last=G.lastMoved&&G.lastMoved.seat===it.s&&G.lastMoved.i===it.i&&!can;
+    h+=`<g class="pc${can?' can':''}${can&&G.hintI===it.i?' hint':''}" transform="translate(${it.x} ${it.y})"${can?` data-pick="${it.i}"`:''}>
+      <circle r="${it.r+3}" fill="transparent"/>
+      <circle r="${it.r+.7}" fill="#000" opacity=".28" cy=".8"/>
+      <circle r="${it.r}" fill="${sd.color}" stroke="#111" stroke-width=".7"/>
+      <circle r="${it.r*.66}" fill="none" stroke="${sd.text}" stroke-width=".45" opacity=".8"/>
+      <text y="${it.r*.38}" font-size="${it.r*1.2}" text-anchor="middle" font-weight="800" fill="${sd.text}">${it.i+1}</text>
+      ${can&&S.hints?`<circle class="ring" r="${it.r+2}"/>`:''}
+      ${last?`<circle r="${it.r+1.6}" fill="none" stroke="#000" stroke-width=".5"/>`:''}
+    </g>`;
+  });
+  $('pieceLayer').innerHTML=h;
+}
+
+function setDie(v,seat){
+  const faces={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  const on=new Set(v?faces[v]:[]);
+  const d=$('die'); d.style.setProperty('--c', SEATS[seat].color==='#f2b705'?'#9a7400':SEATS[seat].color);
+  d.setAttribute('aria-label', v?`Dado: ${v}`:'Dado sin tirar');
+  d.innerHTML=Array.from({length:9},(_,i)=>`<i class="${on.has(i)?'on':''}"></i>`).join('');
+}
+
+function describe(mv){
+  switch(mv.type){
+    case 'exit': return 'Sacar de casa';
+    case 'capture': return mv.from===0?'Salir y comer una ficha':'Comer una ficha';
+    case 'goal': return 'Llegar a la meta';
+    default: return `Avanzar ${mv.to-mv.from} casilla${mv.to-mv.from>1?'s':''}`;
+  }
+}
+
+function renderPanel(){
+  const t=G.turn, over=G.over;
+  $('turn').innerHTML = over ? 'Partida terminada'
+    : `<span class="chip" style="background:${SEATS[t].color}"></span> Turno: ${nameOf(t)}`;
+  const rb=$('rollBtn');
+  rb.disabled=!G.canRoll;
+  rb.textContent = G.canRoll ? '🎲 Tirar el dado' : (over?'Partida terminada': (t===0?'Un momento…':`Juega ${SEATS[t].name}…`));
+  // fichas del jugador
+  $('pieces').innerHTML=[0,1,2,3].map(i=>{
+    const p=G.pos[0][i], mv=G.choices&&G.choices.find(m=>m.i===i);
+    const st = p===0?'En casa':p===72?'¡En la meta!':p>64?'En el pasillo final':'En el tablero';
+    return `<button class="btn pbtn${G.hintI===i?' hint':''}" data-pick="${i}" ${mv?'':'disabled'}>
+      <span class="num" aria-hidden="true">${i+1}</span>
+      <span>Ficha ${i+1}: ${mv?`<b>${describe(mv)}</b>`:st}</span>
+      <span class="bar" aria-hidden="true"><i style="width:${Math.round(p/72*100)}%"></i></span></button>`;
+  }).join('');
+  $('hintBtn').disabled=!(G.choices&&G.choices.length>0);
+  // marcador
+  $('score').innerHTML=G.seats.map(s=>{
+    const a=G.pos[s], home=a.filter(p=>p===0).length, goal=a.filter(p=>p===72).length, play=4-home-goal;
+    return `<div class="${s===0?'you':''}"><span class="chip" style="background:${SEATS[s].color}"></span>${nameOf(s)}: ${home} en casa · ${play} en juego · ${goal} en meta</div>`;
+  }).join('');
+}
+function renderAll(){ renderPieces(); renderPanel(); }
+
+/* ============ Interacción ============ */
+function humanPick(i){
+  if(!G||!G.pick||!G.choices) return;
+  const mv=G.choices.find(m=>m.i===i);
+  if(mv) G.pick(mv);
+}
+function humanRoll(){ if(G&&G.canRoll&&G.rollWait) G.rollWait(); }
+
+$('rollBtn').addEventListener('click',humanRoll);
+$('pieces').addEventListener('click',e=>{ const b=e.target.closest('[data-pick]'); if(b) humanPick(+b.dataset.pick); });
+$('board').addEventListener('click',e=>{ const b=e.target.closest('[data-pick]'); if(b) humanPick(+b.dataset.pick); });
+$('hintBtn').addEventListener('click',()=>{
+  if(!G.choices) return;
+  let best=null,bs=-1e9;
+  for(const m of G.choices){ const sc=scoreMove(0,m,'dificil'); if(sc>bs){bs=sc;best=m;} }
+  G.hintI=best.i;
+  const why = best.type==='goal'?'porque llega a la meta': best.cap?'porque puedes comer una ficha rival':
+    best.type==='exit'?'porque saca una ficha de casa': best.type==='stretch'?'porque entra en tu pasillo seguro':
+    SAFE.has(absSq(0,best.to))?'porque cae en una casilla segura ★':'porque es la jugada más segura y avanzada';
+  $('hint').textContent=`Te aconsejo la ficha ${best.i+1}, ${why}.`;
+  speak($('hint').textContent);
+  renderAll();
+});
+document.addEventListener('keydown',e=>{
+  if(document.querySelector('dialog[open]')) return;
+  if(e.ctrlKey||e.altKey||e.metaKey) return;
+  const tag=(e.target.tagName||'').toLowerCase();
+  if((e.key===' '||e.key==='Enter') && tag!=='button'){ if(G&&G.canRoll){ e.preventDefault(); humanRoll(); } }
+  if(/^[1-4]$/.test(e.key)) humanPick(+e.key-1);
+});
+
+/* ============ Diálogos y ajustes ============ */
+function applySettings(){
+  document.documentElement.style.fontSize=['20px','24px','28px'][S.size]||'20px';
+  document.body.classList.toggle('hc',!!S.contrast);
+  if(G){ drawBoard(); renderAll(); }
+}
+function fillForm(){
+  document.querySelectorAll('input[name=level]').forEach(r=>r.checked=r.value===S.level);
+  document.querySelectorAll('input[name=rivals]').forEach(r=>r.checked=+r.value===S.rivals);
+  document.querySelectorAll('input[name=size]').forEach(r=>r.checked=+r.value===S.size);
+  document.querySelectorAll('input[name=speed]').forEach(r=>r.checked=r.value===S.speed);
+  $('optContrast').checked=S.contrast; $('optHints').checked=S.hints; $('optAuto').checked=S.auto;
+  $('optSound').checked=S.sound; $('optVoice').checked=S.voice;
+}
+function readForm(){
+  S.level=document.querySelector('input[name=level]:checked').value;
+  S.rivals=+document.querySelector('input[name=rivals]:checked').value;
+  S.size=+document.querySelector('input[name=size]:checked').value;
+  S.speed=document.querySelector('input[name=speed]:checked').value;
+  S.contrast=$('optContrast').checked; S.hints=$('optHints').checked; S.auto=$('optAuto').checked;
+  S.sound=$('optSound').checked; S.voice=$('optVoice').checked;
+  saveS();
+}
+// los ajustes de comodidad se aplican al instante
+['size','speed'].forEach(n=>document.querySelectorAll(`input[name=${n}]`).forEach(r=>r.addEventListener('change',()=>{
+  S[n]=n==='size'?+r.value:r.value; saveS(); applySettings();
+})));
+['optContrast','optHints','optAuto','optSound','optVoice'].forEach(id=>$(id).addEventListener('change',()=>{
+  S.contrast=$('optContrast').checked; S.hints=$('optHints').checked; S.auto=$('optAuto').checked;
+  S.sound=$('optSound').checked; S.voice=$('optVoice').checked; saveS(); applySettings();
+}));
+function openSettings(){ fillForm(); $('settingsTitle').textContent=G?'Nueva partida y ajustes':'¡Bienvenido al Parchís!'; $('btnSettingsClose').hidden=!G; $('dlgSettings').showModal(); }
+$('btnNew').addEventListener('click',openSettings);
+$('btnSettings').addEventListener('click',openSettings);
+$('btnSettingsClose').addEventListener('click',()=>{ readForm(); applySettings(); $('dlgSettings').close(); });
+$('btnStart').addEventListener('click',()=>{ readForm(); applySettings(); $('dlgSettings').close(); newGame(); });
+$('btnHelp').addEventListener('click',()=>$('dlgHelp').showModal());
+$('btnHelpClose').addEventListener('click',()=>$('dlgHelp').close());
+$('btnEndAgain').addEventListener('click',()=>{ $('dlgEnd').close(); newGame(); });
+$('btnEndSettings').addEventListener('click',()=>{ $('dlgEnd').close(); openSettings(); });
+
+/* ============ Inicio ============ */
+applySettings();
+window.__parchis={get G(){return G;}, S};
+openSettings();
+</script>
+</body>
+</html>
