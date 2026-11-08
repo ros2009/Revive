@@ -696,10 +696,11 @@ function fillForm(){
   $('optSound').checked=S.sound; $('optVoice').checked=S.voice;
 }
 function readForm(){
-  S.level=document.querySelector('input[name=level]:checked').value;
-  S.rivals=+document.querySelector('input[name=rivals]:checked').value;
-  S.size=+document.querySelector('input[name=size]:checked').value;
-  S.speed=document.querySelector('input[name=speed]:checked').value;
+  const val=(n,d)=>{ const e=document.querySelector(`input[name=${n}]:checked`); return e?e.value:d; };
+  S.level=val('level',S.level);
+  S.rivals=+val('rivals',S.rivals);
+  S.size=+val('size',S.size);
+  S.speed=val('speed',S.speed);
   S.contrast=$('optContrast').checked; S.hints=$('optHints').checked; S.auto=$('optAuto').checked;
   S.sound=$('optSound').checked; S.voice=$('optVoice').checked;
   saveS();
